@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mote soak review — soak-20261011-160957.jsonl</title>
+<style>
+  :root {
+    --bg: #12141a;
+    --panel: #1c2030;
+    --text: #e8eaf0;
+    --muted: #8b93a7;
+    --del: #ff6b7a;
+    --del-bg: rgba(255,107,122,.18);
+    --ins: #5ddea8;
+    --ins-bg: rgba(93,222,168,.18);
+    --fix: #5b9cff;
+    --same: #8b93a7;
+    --miss: #f0c674;
+    --fail: #ff6b7a;
+    --border: #2a3148;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 20px 64px;
+    font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 10% -10%, #243056 0%, transparent 55%), var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 1.35rem; font-weight: 650; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin-bottom: 18px; font-size: .92rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .filters button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit;
+  }
+  .filters button.active { border-color: var(--fix); color: #cfe0ff; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .card.fix { border-left: 3px solid var(--fix); }
+  .card.same { border-left: 3px solid var(--same); opacity: .92; }
+  .card.miss { border-left: 3px solid var(--miss); }
+  .card.fail { border-left: 3px solid var(--fail); }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .id { background: #10131c; padding: 2px 7px; border-radius: 6px; color: #b8c4e0; }
+  .badge {
+    font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+    padding: 2px 8px; border-radius: 999px; background: #10131c; color: var(--muted);
+  }
+  .card.fix .badge { color: #cfe0ff; }
+  .card.miss .badge { color: var(--miss); }
+  .card.fail .badge { color: var(--fail); }
+  .meta { color: var(--muted); font-size: .82rem; margin-left: auto; }
+  .row { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: start; }
+  .label { color: var(--muted); font-size: .78rem; padding-top: 3px; }
+  .text { white-space: pre-wrap; word-break: break-word; background: #10131c; border-radius: 8px; padding: 8px 10px; }
+  .diff { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .95rem; letter-spacing: .01em; }
+  .eq { color: var(--text); }
+  .del {
+    color: var(--del); background: var(--del-bg); text-decoration: line-through;
+    border-radius: 3px; padding: 0 1px;
+  }
+  .ins {
+    color: var(--ins); background: var(--ins-bg); border-radius: 3px; padding: 0 1px;
+    font-weight: 600;
+  }
+  .changes { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+  .chip {
+    font-family: ui-monospace, Consolas, monospace; font-size: .82rem;
+    padding: 2px 8px; border-radius: 6px;
+  }
+  .del-chip { background: var(--del-bg); color: var(--del); }
+  .ins-chip { background: var(--ins-bg); color: var(--ins); }
+  .muted { color: var(--muted); font-size: .85rem; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <h1>Soak: исправления слов и букв</h1>
+  <div class="sub">soak-20261011-160957.jsonl · запросов 2933 · уникальных кейсов 14 · красный = удалено, зелёный = добавлено</div>
+  <div class="filters">
+    <button type="button" data-filter="all" class="active">все</button>
+    <button type="button" data-filter="fix">только исправления</button>
+    <button type="button" data-filter="same">без изменений</button>
+    <button type="button" data-filter="miss">miss expect</button>
+  </div>
+  <div class="grid" id="grid">
+
+  <article class="card fix">
+    <header>
+      <code class="id">l1</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×209 · avg 1183ms (1165–1258)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Превет! Я хачу штобы модель исправила этот кривой текст и пунктуацию где надо.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Привет! Я хочу, чтобы модель исправила этот кривой текст и пунктуацию, где надо.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">П</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span><span class="eq">!</span><span class="eq"> </span><span class="eq">Я</span><span class="eq"> </span><span class="eq">х</span><span class="del">а</span><span class="ins">о</span><span class="eq">ч</span><span class="eq">у</span><span class="ins">,</span><span class="eq"> </span><span class="del">ш</span><span class="ins">ч</span><span class="eq">т</span><span class="eq">о</span><span class="eq">б</span><span class="eq">ы</span><span class="eq"> </span><span class="eq">м</span><span class="eq">о</span><span class="eq">д</span><span class="eq">е</span><span class="eq">л</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">и</span><span class="eq">с</span><span class="eq">п</span><span class="eq">р</span><span class="eq">а</span><span class="eq">в</span><span class="eq">и</span><span class="eq">л</span><span class="eq">а</span><span class="eq"> </span><span class="eq">э</span><span class="eq">т</span><span class="eq">о</span><span class="eq">т</span><span class="eq"> </span><span class="eq">к</span><span class="eq">р</span><span class="eq">и</span><span class="eq">в</span><span class="eq">о</span><span class="eq">й</span><span class="eq"> </span><span class="eq">т</span><span class="eq">е</span><span class="eq">к</span><span class="eq">с</span><span class="eq">т</span><span class="eq"> </span><span class="eq">и</span><span class="eq"> </span><span class="eq">п</span><span class="eq">у</span><span class="eq">н</span><span class="eq">к</span><span class="eq">т</span><span class="eq">у</span><span class="eq">а</span><span class="eq">ц</span><span class="eq">и</span><span class="eq">ю</span><span class="ins">,</span><span class="eq"> </span><span class="eq">г</span><span class="eq">д</span><span class="eq">е</span><span class="eq"> </span><span class="eq">н</span><span class="eq">а</span><span class="eq">д</span><span class="eq">о</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− еаш</span><span class="chip ins-chip">+ ио,ч,</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">l2</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×209 · avg 1228ms (1209–1467)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Когда я пишу быстро, появляются ошибки вроде превет, дила и тоесть — их надо чинить.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Когда я пишу быстро, появляются ошибки типа привет, дайла и тоесть — их надо чинить.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">К</span><span class="eq">о</span><span class="eq">г</span><span class="eq">д</span><span class="eq">а</span><span class="eq"> </span><span class="eq">я</span><span class="eq"> </span><span class="eq">п</span><span class="eq">и</span><span class="eq">ш</span><span class="eq">у</span><span class="eq"> </span><span class="eq">б</span><span class="eq">ы</span><span class="eq">с</span><span class="eq">т</span><span class="eq">р</span><span class="eq">о</span><span class="eq">,</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">я</span><span class="eq">в</span><span class="eq">л</span><span class="eq">я</span><span class="eq">ю</span><span class="eq">т</span><span class="eq">с</span><span class="eq">я</span><span class="eq"> </span><span class="eq">о</span><span class="eq">ш</span><span class="eq">и</span><span class="eq">б</span><span class="eq">к</span><span class="eq">и</span><span class="eq"> </span><span class="del">в</span><span class="del">р</span><span class="del">о</span><span class="del">д</span><span class="del">е</span><span class="ins">т</span><span class="ins">и</span><span class="ins">п</span><span class="ins">а</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span><span class="eq">,</span><span class="eq"> </span><span class="eq">д</span><span class="del">и</span><span class="ins">а</span><span class="ins">й</span><span class="eq">л</span><span class="eq">а</span><span class="eq"> </span><span class="eq">и</span><span class="eq"> </span><span class="eq">т</span><span class="eq">о</span><span class="eq">е</span><span class="eq">с</span><span class="eq">т</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">—</span><span class="eq"> </span><span class="eq">и</span><span class="eq">х</span><span class="eq"> </span><span class="eq">н</span><span class="eq">а</span><span class="eq">д</span><span class="eq">о</span><span class="eq"> </span><span class="eq">ч</span><span class="eq">и</span><span class="eq">н</span><span class="eq">и</span><span class="eq">т</span><span class="eq">ь</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− вродееи</span><span class="chip ins-chip">+ типаиай</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s1</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 362ms (347–432)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">превет как дила</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Привет, как дела?</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="del">п</span><span class="ins">П</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span><span class="ins">,</span><span class="eq"> </span><span class="eq">к</span><span class="eq">а</span><span class="eq">к</span><span class="eq"> </span><span class="eq">д</span><span class="del">и</span><span class="ins">е</span><span class="eq">л</span><span class="eq">а</span><span class="ins">?</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− пеи</span><span class="chip ins-chip">+ Пи,е?</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s2</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 656ms (635–1397)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Я написал превет и пошол дальше.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Я написал привет и пошёл дальше.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">Я</span><span class="eq"> </span><span class="eq">н</span><span class="eq">а</span><span class="eq">п</span><span class="eq">и</span><span class="eq">с</span><span class="eq">а</span><span class="eq">л</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span><span class="eq"> </span><span class="eq">и</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">ш</span><span class="del">о</span><span class="ins">ё</span><span class="eq">л</span><span class="eq"> </span><span class="eq">д</span><span class="eq">а</span><span class="eq">л</span><span class="eq">ь</span><span class="eq">ш</span><span class="eq">е</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− ео</span><span class="chip ins-chip">+ иё</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s3</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 735ms (717–955)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">тоесть нужно проверить орфографию в предложении</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">То есть нужно проверить орфографию в предложении.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="del">т</span><span class="ins">Т</span><span class="eq">о</span><span class="ins"> </span><span class="eq">е</span><span class="eq">с</span><span class="eq">т</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">н</span><span class="eq">у</span><span class="eq">ж</span><span class="eq">н</span><span class="eq">о</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="eq">о</span><span class="eq">в</span><span class="eq">е</span><span class="eq">р</span><span class="eq">и</span><span class="eq">т</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">о</span><span class="eq">р</span><span class="eq">ф</span><span class="eq">о</span><span class="eq">г</span><span class="eq">р</span><span class="eq">а</span><span class="eq">ф</span><span class="eq">и</span><span class="eq">ю</span><span class="eq"> </span><span class="eq">в</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="eq">е</span><span class="eq">д</span><span class="eq">л</span><span class="eq">о</span><span class="eq">ж</span><span class="eq">е</span><span class="eq">н</span><span class="eq">и</span><span class="eq">и</span><span class="ins">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− т</span><span class="chip ins-chip">+ Т␠.</span></div>
+  </article>
+
+  <article class="card miss">
+    <header>
+      <code class="id">s4</code>
+      <span class="badge">miss expect</span>
+      <span class="meta">×209 · avg 743ms (728–811)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Сегодня хорошая пагода, пойду гулять.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Сегодня хорошая погода, пойду гулять.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">С</span><span class="eq">е</span><span class="eq">г</span><span class="eq">о</span><span class="eq">д</span><span class="eq">н</span><span class="eq">я</span><span class="eq"> </span><span class="eq">х</span><span class="eq">о</span><span class="eq">р</span><span class="eq">о</span><span class="eq">ш</span><span class="eq">а</span><span class="eq">я</span><span class="eq"> </span><span class="eq">п</span><span class="del">а</span><span class="ins">о</span><span class="eq">г</span><span class="eq">о</span><span class="eq">д</span><span class="eq">а</span><span class="eq">,</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">й</span><span class="eq">д</span><span class="eq">у</span><span class="eq"> </span><span class="eq">г</span><span class="eq">у</span><span class="eq">л</span><span class="eq">я</span><span class="eq">т</span><span class="eq">ь</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− а</span><span class="chip ins-chip">+ о</span></div>
+  </article>
+
+  <article class="card same">
+    <header>
+      <code class="id">s5</code>
+      <span class="badge">без изменений</span>
+      <span class="meta">×209 · avg 567ms (557–623)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Это уже правильное предложение без ошибок.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Это уже правильное предложение без ошибок.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">Э</span><span class="eq">т</span><span class="eq">о</span><span class="eq"> </span><span class="eq">у</span><span class="eq">ж</span><span class="eq">е</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="eq">а</span><span class="eq">в</span><span class="eq">и</span><span class="eq">л</span><span class="eq">ь</span><span class="eq">н</span><span class="eq">о</span><span class="eq">е</span><span class="eq"> </span><span class="eq">п</span><span class="eq">р</span><span class="eq">е</span><span class="eq">д</span><span class="eq">л</span><span class="eq">о</span><span class="eq">ж</span><span class="eq">е</span><span class="eq">н</span><span class="eq">и</span><span class="eq">е</span><span class="eq"> </span><span class="eq">б</span><span class="eq">е</span><span class="eq">з</span><span class="eq"> </span><span class="eq">о</span><span class="eq">ш</span><span class="eq">и</span><span class="eq">б</span><span class="eq">о</span><span class="eq">к</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="muted">без изменений</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s6</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×209 · avg 760ms (746–844)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Мне нужна помошь с текстом, он совсем кривой.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Мне нужна помощь с текстом, он совсем кривой.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">М</span><span class="eq">н</span><span class="eq">е</span><span class="eq"> </span><span class="eq">н</span><span class="eq">у</span><span class="eq">ж</span><span class="eq">н</span><span class="eq">а</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">м</span><span class="eq">о</span><span class="del">ш</span><span class="ins">щ</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">с</span><span class="eq"> </span><span class="eq">т</span><span class="eq">е</span><span class="eq">к</span><span class="eq">с</span><span class="eq">т</span><span class="eq">о</span><span class="eq">м</span><span class="eq">,</span><span class="eq"> </span><span class="eq">о</span><span class="eq">н</span><span class="eq"> </span><span class="eq">с</span><span class="eq">о</span><span class="eq">в</span><span class="eq">с</span><span class="eq">е</span><span class="eq">м</span><span class="eq"> </span><span class="eq">к</span><span class="eq">р</span><span class="eq">и</span><span class="eq">в</span><span class="eq">о</span><span class="eq">й</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− ш</span><span class="chip ins-chip">+ щ</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s7</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×209 · avg 969ms (952–1122)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">Здраствуйте, подскажите пожалуста как исправить опечатки.</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Здравствуйте, подскажите пожалуйста как исправить опечатки.</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">З</span><span class="eq">д</span><span class="eq">р</span><span class="eq">а</span><span class="ins">в</span><span class="eq">с</span><span class="eq">т</span><span class="eq">в</span><span class="eq">у</span><span class="eq">й</span><span class="eq">т</span><span class="eq">е</span><span class="eq">,</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">д</span><span class="eq">с</span><span class="eq">к</span><span class="eq">а</span><span class="eq">ж</span><span class="eq">и</span><span class="eq">т</span><span class="eq">е</span><span class="eq"> </span><span class="eq">п</span><span class="eq">о</span><span class="eq">ж</span><span class="eq">а</span><span class="eq">л</span><span class="eq">у</span><span class="ins">й</span><span class="eq">с</span><span class="eq">т</span><span class="eq">а</span><span class="eq"> </span><span class="eq">к</span><span class="eq">а</span><span class="eq">к</span><span class="eq"> </span><span class="eq">и</span><span class="eq">с</span><span class="eq">п</span><span class="eq">р</span><span class="eq">а</span><span class="eq">в</span><span class="eq">и</span><span class="eq">т</span><span class="eq">ь</span><span class="eq"> </span><span class="eq">о</span><span class="eq">п</span><span class="eq">е</span><span class="eq">ч</span><span class="eq">а</span><span class="eq">т</span><span class="eq">к</span><span class="eq">и</span><span class="eq">.</span></div>
+    </div>
+    <div class="changes"><span class="chip ins-chip">+ вй</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">s8</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×209 · avg 541ms (528–636)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">в чате написали: превет всем, как у вас дила?</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Привет всем, как у вас дела?</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="del">в</span><span class="del"> </span><span class="del">ч</span><span class="del">а</span><span class="del">т</span><span class="del">е</span><span class="del"> </span><span class="del">н</span><span class="del">а</span><span class="del">п</span><span class="del">и</span><span class="del">с</span><span class="del">а</span><span class="del">л</span><span class="del">и</span><span class="del">:</span><span class="del"> </span><span class="del">п</span><span class="ins">П</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span><span class="eq"> </span><span class="eq">в</span><span class="eq">с</span><span class="eq">е</span><span class="eq">м</span><span class="eq">,</span><span class="eq"> </span><span class="eq">к</span><span class="eq">а</span><span class="eq">к</span><span class="eq"> </span><span class="eq">у</span><span class="eq"> </span><span class="eq">в</span><span class="eq">а</span><span class="eq">с</span><span class="eq"> </span><span class="eq">д</span><span class="del">и</span><span class="ins">е</span><span class="eq">л</span><span class="eq">а</span><span class="eq">?</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− в␠чате␠написали:␠пеи</span><span class="chip ins-chip">+ Пие</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">w1</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 190ms (182–425)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">превет</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Привет</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="del">п</span><span class="ins">П</span><span class="eq">р</span><span class="del">е</span><span class="ins">и</span><span class="eq">в</span><span class="eq">е</span><span class="eq">т</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− пе</span><span class="chip ins-chip">+ Пи</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">w2</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 148ms (143–208)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">тоесть</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">то есть</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">т</span><span class="eq">о</span><span class="ins"> </span><span class="eq">е</span><span class="eq">с</span><span class="eq">т</span><span class="eq">ь</span></div>
+    </div>
+    <div class="changes"><span class="chip ins-chip">+ ␠</span></div>
+  </article>
+
+  <article class="card fix">
+    <header>
+      <code class="id">w3</code>
+      <span class="badge">исправлено</span>
+      <span class="meta">×210 · avg 317ms (305–401)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">здраствуйте</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">Здравствуйте</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="del">з</span><span class="ins">З</span><span class="eq">д</span><span class="eq">р</span><span class="eq">а</span><span class="ins">в</span><span class="eq">с</span><span class="eq">т</span><span class="eq">в</span><span class="eq">у</span><span class="eq">й</span><span class="eq">т</span><span class="eq">е</span></div>
+    </div>
+    <div class="changes"><span class="chip del-chip">− з</span><span class="chip ins-chip">+ Зв</span></div>
+  </article>
+
+  <article class="card same">
+    <header>
+      <code class="id">w4</code>
+      <span class="badge">без изменений</span>
+      <span class="meta">×210 · avg 147ms (143–178)</span>
+    </header>
+    <div class="row">
+      <div class="label">было</div>
+      <div class="text before">дела</div>
+    </div>
+    <div class="row">
+      <div class="label">стало</div>
+      <div class="text after">дела</div>
+    </div>
+    <div class="row">
+      <div class="label">буквы</div>
+      <div class="text diff"><span class="eq">д</span><span class="eq">е</span><span class="eq">л</span><span class="eq">а</span></div>
+    </div>
+    <div class="changes"><span class="muted">без изменений</span></div>
+  </article>
+  </div>
+<script>
+document.querySelector(".filters").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-filter]");
+  if (!btn) return;
+  document.querySelectorAll(".filters button").forEach((b) => b.classList.toggle("active", b === btn));
+  const f = btn.dataset.filter;
+  document.querySelectorAll(".card").forEach((card) => {
+    const show = f === "all" || card.classList.contains(f);
+    card.classList.toggle("hidden", !show);
+  });
+});
+</script>
+</body>
+</html>

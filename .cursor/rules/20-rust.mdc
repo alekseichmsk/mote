@@ -1,0 +1,9 @@
+---
+description: Rust / Tauri
+globs: src-tauri/**/*.rs
+---
+- Tauri-команды async; тяжёлое — spawn_blocking или свой поток. UI-поток не блокировать.
+- COM/UIA: CoInitializeEx на своём потоке, COM-объекты не передавать между потоками.
+- Ошибки: thiserror для типов модулей, anyhow только на границах команд.
+- Sidecar-процессы (llama-server) — всегда корректно останавливать при выходе и в игровом режиме.
+- Перед завершением: cargo fmt, cargo clippy -D warnings.

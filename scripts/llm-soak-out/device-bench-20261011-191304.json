@@ -1,0 +1,727 @@
+﻿{
+    "stamp":  "20261011-191304",
+    "rounds":  3,
+    "cpu":  {
+                "device":  "cpu",
+                "ngl":  0,
+                "port":  18771,
+                "bootMs":  1620,
+                "wallMs":  37848,
+                "ok":  42,
+                "fail":  0,
+                "avgMs":  894,
+                "p50Ms":  885,
+                "p95Ms":  919,
+                "minMs":  876,
+                "maxMs":  1126,
+                "llamaRamIdleMB":  3247.6,
+                "llamaRamPeakMB":  3256.5,
+                "llamaRamEndMB":  3256.4,
+                "moteRamMB":  62.9,
+                "gpuMemBeforeMB":  1189,
+                "gpuMemIdleMB":  1177,
+                "gpuMemPeakMB":  1179,
+                "gpuMemAfterMB":  1172,
+                "rows":  [
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "w1",
+                                 "ms":  1126,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "w2",
+                                 "ms":  890,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "w3",
+                                 "ms":  923,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "w4",
+                                 "ms":  891,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s1",
+                                 "ms":  886,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s2",
+                                 "ms":  883,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s3",
+                                 "ms":  887,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s4",
+                                 "ms":  892,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s5",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s6",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s7",
+                                 "ms":  896,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "s8",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "l1",
+                                 "ms":  883,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  1,
+                                 "id":  "l2",
+                                 "ms":  889,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "w1",
+                                 "ms":  880,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "w2",
+                                 "ms":  890,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "w3",
+                                 "ms":  889,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "w4",
+                                 "ms":  883,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s1",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s2",
+                                 "ms":  900,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s3",
+                                 "ms":  882,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s4",
+                                 "ms":  919,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s5",
+                                 "ms":  894,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s6",
+                                 "ms":  885,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s7",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "s8",
+                                 "ms":  897,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "l1",
+                                 "ms":  886,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  2,
+                                 "id":  "l2",
+                                 "ms":  915,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "w1",
+                                 "ms":  888,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "w2",
+                                 "ms":  881,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "w3",
+                                 "ms":  888,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "w4",
+                                 "ms":  879,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s1",
+                                 "ms":  883,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s2",
+                                 "ms":  885,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s3",
+                                 "ms":  876,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s4",
+                                 "ms":  876,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s5",
+                                 "ms":  879,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s6",
+                                 "ms":  883,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s7",
+                                 "ms":  880,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "s8",
+                                 "ms":  882,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "l1",
+                                 "ms":  894,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             },
+                             {
+                                 "device":  "cpu",
+                                 "round":  3,
+                                 "id":  "l2",
+                                 "ms":  885,
+                                 "ok":  true,
+                                 "output":  "Fix russian spelling punctuation and obvious typos. Keep meaning and language. Return only the corrected text no quotes no explanations"
+                             }
+                         ]
+            },
+    "gpu":  {
+                "device":  "gpu",
+                "ngl":  99,
+                "port":  18772,
+                "bootMs":  17835,
+                "wallMs":  18807,
+                "ok":  42,
+                "fail":  0,
+                "avgMs":  443,
+                "p50Ms":  23,
+                "p95Ms":  24,
+                "minMs":  22,
+                "maxMs":  17660,
+                "llamaRamIdleMB":  2255.1,
+                "llamaRamPeakMB":  2289.3,
+                "llamaRamEndMB":  2289.3,
+                "moteRamMB":  63,
+                "gpuMemBeforeMB":  1247,
+                "gpuMemIdleMB":  3321,
+                "gpuMemPeakMB":  3305,
+                "gpuMemAfterMB":  1147,
+                "rows":  [
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "w1",
+                                 "ms":  17660,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "w2",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "w3",
+                                 "ms":  24,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "w4",
+                                 "ms":  24,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s1",
+                                 "ms":  25,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s2",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s3",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s4",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s5",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s6",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s7",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "s8",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "l1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  1,
+                                 "id":  "l2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "w1",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "w2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "w3",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "w4",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s3",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s4",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s5",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s6",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s7",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "s8",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "l1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  2,
+                                 "id":  "l2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "w1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "w2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "w3",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "w4",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s2",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s3",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s4",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s5",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s6",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s7",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "s8",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "l1",
+                                 "ms":  23,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             },
+                             {
+                                 "device":  "gpu",
+                                 "round":  3,
+                                 "id":  "l2",
+                                 "ms":  22,
+                                 "ok":  true,
+                                 "output":  "corrected text"
+                             }
+                         ]
+            },
+    "speedupAvg":  2.02,
+    "ramPeakDeltaMB":  -967.2,
+    "vramDeltaMB":  2058
+}

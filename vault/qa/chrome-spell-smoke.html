@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Mote Chrome spell smoke</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin: 1.25rem 0 0.35rem; font-weight: 600; }
+    input, [contenteditable] {
+      width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem;
+      font-size: 1.1rem; border: 1px solid #888; border-radius: 4px;
+    }
+    [contenteditable] { min-height: 3.5rem; }
+    p.hint { color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Chrome spell smoke</h1>
+  <p class="hint">Фаза 1.1.2c / 1.1.5: ввести «превет», дождаться plaque, Заменить / Скопировать.</p>
+
+  <label for="plain">input</label>
+  <input id="plain" type="text" autocomplete="off" placeholder="превет" />
+
+  <label>contenteditable</label>
+  <div id="ce" contenteditable="true" role="textbox"></div>
+</body>
+</html>

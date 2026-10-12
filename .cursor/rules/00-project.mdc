@@ -1,0 +1,11 @@
+---
+description: Контекст проекта Mote
+alwaysApply: true
+---
+- Mote — десктоп-питомец для Windows (Tauri 2, Rust, React/TS). Источник правды — ROADMAP.md.
+- Всё оффлайн. Сеть только: погода, Википедия, загрузка моделей, облачный LLM по ключу.
+- Windows-код в #[cfg(windows)], крейт `windows` (windows-rs), не `winapi`.
+- Логи с префиксом `[mote]` на входе, результате и ошибке каждого ключевого шага.
+- Данные в %APPDATA%\Mote\ (SQLite, models, voices). Ключи — только Windows Credential Manager (`keyring`).
+- Не трогай работающие фичи без регресс-проверки (список в AGENTS.md).
+- Документация — vault/ (скилл docs-obsidian), wikilinks, frontmatter.

@@ -1,0 +1,575 @@
+diff --git a/src-tauri/src/digit_actions.rs b/src-tauri/src/digit_actions.rs
+index 985fd25..a779921 100644
+--- a/src-tauri/src/digit_actions.rs
++++ b/src-tauri/src/digit_actions.rs
+@@ -10,6 +10,8 @@ struct DigitTarget {
+     top_hwnd: isize,
+     /// Characters to backspace for the simple word-replace fallback.
+     len: usize,
++    /// Text was only the caret paragraph — whole-field replace would destroy the doc.
++    partial: bool,
+ }
+ 
+ static DIGIT_TARGET: Mutex<Option<DigitTarget>> = Mutex::new(None);
+@@ -27,10 +29,22 @@ pub fn set_digit_target_ex(hwnd: isize, top_hwnd: isize, digits: &str) {
+             hwnd,
+             top_hwnd,
+             len: digits.chars().count().min(128),
++            partial: false,
+         });
+     }
+ }
+ 
++/// Spell target; `partial` = snapshot was a paragraph of a longer document.
++pub fn set_spell_target(hwnd: isize, top_hwnd: isize, replaced: &str, partial: bool) {
++    set_digit_target_ex(hwnd, top_hwnd, replaced);
++    if partial {
++        let mut guard = DIGIT_TARGET.lock().unwrap_or_else(|e| e.into_inner());
++        if let Some(t) = guard.as_mut() {
++            t.partial = true;
++        }
++    }
++}
++
+ pub fn clear_digit_target() {
+     let mut guard = DIGIT_TARGET.lock().unwrap_or_else(|e| e.into_inner());
+     *guard = None;
+@@ -417,6 +431,7 @@ mod win {
+             hwnd: 0,
+             top_hwnd: unsafe { GetForegroundWindow().0 as isize },
+             len: suggestion.chars().count().min(128),
++            partial: false,
+         });
+ 
+         eprintln!(
+@@ -429,6 +444,12 @@ mod win {
+         // Always put corrected text on the clipboard first (copy must work).
+         set_clipboard_text(text)?;
+ 
++        if stored.partial {
++            // Long document: `text` is one paragraph; Ctrl+A/V or SetValue would wipe the rest.
++            eprintln!("[mote] spell_replace: partial snapshot — clipboard only");
++            return Err("длинный документ: исправленный абзац скопирован".into());
++        }
++
+         let focus_hwnd_opt = resolve_focus_hwnd(stored.hwnd, stored.top_hwnd);
+         let richedit = focus_hwnd_opt
+             .map(is_richedit_hwnd)
+diff --git a/src-tauri/src/field_text.rs b/src-tauri/src/field_text.rs
+index 320ac71..a83f4c4 100644
+--- a/src-tauri/src/field_text.rs
++++ b/src-tauri/src/field_text.rs
+@@ -6,6 +6,9 @@ pub struct FieldSnapshot {
+     pub hwnd: isize,
+     /// UIA control type debug name (Edit, Document, …) for diagnostics.
+     pub control_type: String,
++    /// true = text is only the paragraph around the caret (Word / long docs).
++    /// Whole-field replace (Ctrl+A/V, SetValue) must NOT be used for it.
++    pub partial: bool,
+ }
+ 
+ /// Screen rect of the caret (preferred) or the focused edit field.
+@@ -138,8 +141,12 @@ mod win {
+     use uiautomation::types::{ControlType, UIProperty};
+     use uiautomation::UIAutomation;
+     use windows::Win32::Foundation::HWND;
++    use uiautomation::types::TextUnit;
++    use windows::Win32::Foundation::{LPARAM, WPARAM};
+     use windows::Win32::UI::WindowsAndMessaging::{
+-        GetClassNameW, GetForegroundWindow, GetGUIThreadInfo, GUITHREADINFO,
++        GetClassNameW, GetForegroundWindow, GetGUIThreadInfo, GetWindowLongW, SendMessageTimeoutW,
++        GUITHREADINFO, GWL_STYLE, SMTO_ABORTIFHUNG, SMTO_BLOCK, WM_GETOBJECT, WM_GETTEXT,
++        WM_GETTEXTLENGTH,
+     };
+ 
+     /// Fresh thread for UIA from Tauri invoke: `UIAutomation::new()` calls
+@@ -302,74 +309,226 @@ mod win {
+         el.get_pattern::<UIValuePattern>().is_ok()
+     }
+ 
+-    /// True for a focused fill/edit control — not static Text / whole window.
+-    fn is_fill_field(el: &uiautomation::UIElement) -> bool {
++    fn has_text_pattern(el: &uiautomation::UIElement) -> bool {
++        el.get_pattern::<UITextPattern>().is_ok()
++    }
++
++    fn has_kb_focus(el: &uiautomation::UIElement) -> bool {
++        el.has_keyboard_focus().unwrap_or(false)
++    }
++
++    /// Some(true) only when the element says ValuePattern.IsReadOnly.
++    fn value_readonly(el: &uiautomation::UIElement) -> Option<bool> {
++        el.get_pattern::<UIValuePattern>().ok()?.is_readonly().ok()
++    }
++
++    /// Editable content source: writable ValuePattern or TextPattern.
++    fn has_editable_pattern(el: &uiautomation::UIElement) -> bool {
++        (has_value_pattern(el) && value_readonly(el) != Some(true)) || has_text_pattern(el)
++    }
++
++    /// None = accepted; Some(reason) = why this element is not a fill field (for diag logs).
++    fn fill_reject_reason(el: &uiautomation::UIElement) -> Option<&'static str> {
++        if !el.is_enabled().unwrap_or(true) {
++            return Some("disabled");
++        }
++        if value_readonly(el) == Some(true) && !is_richedit_editor(el) {
++            // Chrome page root Document (Value = URL), labels, read-only logs.
++            return Some("readonly");
++        }
+         let Some(ct) = control_type_of(el) else {
+-            return has_value_pattern(el) && looks_like_input_rect(el);
++            return if has_value_pattern(el) && looks_like_input_rect(el) {
++                None
++            } else {
++                Some("no control type")
++            };
+         };
+-        // Static labels / page chrome — never.
+         if matches!(ct, ControlType::Text | ControlType::Window | ControlType::Pane) {
+-            return false;
+-        }
+-        if !is_input_control_type(ct) {
+-            return false;
++            return Some("static/window/pane");
+         }
++        let focused = has_kb_focus(el);
+         match ct {
+-            ControlType::Edit | ControlType::ComboBox | ControlType::Spinner => true,
++            ControlType::Edit | ControlType::ComboBox | ControlType::Spinner => None,
+             ControlType::Document => {
+-                // Win11 Notepad: Document + RichEditD2DPT, often no ValuePattern, tall rect.
+-                // Web pages: huge Document without RichEdit — rejected by looks_like_input_rect.
+-                is_richedit_editor(el) || looks_like_input_rect(el) || has_value_pattern(el)
++                // Focused Document with TextPattern = real editor surface:
++                // Word (_WwG), WPF RichTextBox, Chromium contenteditable, Notepad.
++                if focused && has_editable_pattern(el) {
++                    return None;
++                }
++                if is_richedit_editor(el) {
++                    return None;
++                }
++                if looks_like_input_rect(el) && has_editable_pattern(el) {
++                    return None;
++                }
++                Some("document: not focused / page-sized / no pattern")
++            }
++            ControlType::Custom | ControlType::DataItem | ControlType::Group => {
++                // Chromium/Electron contenteditable often surfaces as Group/Custom.
++                if focused && el.is_keyboard_focusable().unwrap_or(false) && has_editable_pattern(el)
++                {
++                    return None;
++                }
++                if has_value_pattern(el)
++                    && value_readonly(el) != Some(true)
++                    && looks_like_input_rect(el)
++                {
++                    return None;
++                }
++                Some("custom/group: not focused editable")
+             }
+-            _ => has_value_pattern(el) && looks_like_input_rect(el),
++            _ => Some("control type not input"),
+         }
+     }
+ 
++    /// True for a focused fill/edit control — not static Text / whole window.
++    fn is_fill_field(el: &uiautomation::UIElement) -> bool {
++        fill_reject_reason(el).is_none()
++    }
++
++    fn within_budget_for(el: &uiautomation::UIElement, s: &str) -> bool {
++        if is_richedit_editor(el) {
++            s.chars().count() <= 8_000 && s.lines().count() <= 400
++        } else {
++            within_field_budget(s)
++        }
++    }
++
++    /// Paragraph around the caret (TextPattern2.GetCaretRange, else first selection).
++    fn caret_paragraph(pattern: &UITextPattern) -> Option<String> {
++        let range = match pattern.get_caret_range() {
++            Ok((_, r)) => r,
++            Err(_) => pattern.get_selection().ok()?.into_iter().next()?,
++        };
++        range.expand_to_enclosing_unit(TextUnit::Paragraph).ok()?;
++        let s = normalize_field_text(&range.get_text(MAX_FIELD_CHARS as i32 + 1).ok()?);
++        if s.trim().is_empty() || !within_field_budget(&s) {
++            return None;
++        }
++        Some(s)
++    }
++
+     /// Value of the input only — never the longest TextPattern dump on screen.
+-    fn read_input_value(el: &uiautomation::UIElement) -> Option<String> {
++    /// Returns (text, partial).
++    fn read_input_value(el: &uiautomation::UIElement) -> Option<(String, bool)> {
++        let text_pat = el.get_pattern::<UITextPattern>().ok();
++        let mut empty_value = false;
+         if let Ok(pattern) = el.get_pattern::<UIValuePattern>() {
+             if let Ok(s) = pattern.get_value() {
+                 let s = normalize_field_text(&s);
+-                if within_field_budget(&s) {
+-                    return Some(s);
++                // Chromium contenteditable / Qt / RichEdit often report Value="" while
++                // TextPattern has the real text — don't stop on an empty Value.
++                if !s.is_empty() && within_field_budget(&s) {
++                    return Some((s, false));
+                 }
++                empty_value |= s.is_empty();
+             }
+         }
+         if let Ok(val) = el.get_property_value(UIProperty::ValueValue) {
+             if let Ok(s) = val.get_string() {
+                 let s = normalize_field_text(&s);
+-                if within_field_budget(&s) {
+-                    return Some(s);
++                if !s.is_empty() && within_field_budget(&s) {
++                    return Some((s, false));
+                 }
++                empty_value |= s.is_empty();
+             }
+         }
+-        // Edit/ComboBox/Spinner: Value* only. TextPattern on Chromium Edit can
+-        // briefly dump a huge sibling/document range (e.g. 6 → 802 chars).
+-        let ct = control_type_of(el);
+-        if matches!(
+-            ct,
+-            Some(ControlType::Edit | ControlType::ComboBox | ControlType::Spinner)
+-        ) {
++        let Some(pattern) = text_pat else {
++            return if empty_value { Some((String::new(), false)) } else { None };
++        };
++        // TextPattern on THIS element only. Edit spikes (6 → 802 chars) are cut by the
++        // budget here and by the spike guard in watcher.
++        if let Ok(range) = pattern.get_document_range() {
++            if let Ok(s) = range.get_text(-1) {
++                let s = normalize_field_text(&s);
++                if within_budget_for(el, &s) {
++                    return Some((s, false));
++                }
++            }
++        }
++        // Long document (Word, big Notepad file): only the caret paragraph, marked partial.
++        if has_kb_focus(el) {
++            if let Some(s) = caret_paragraph(&pattern) {
++                return Some((s, true));
++            }
++        }
++        if empty_value {
++            Some((String::new(), false))
++        } else {
++            None
++        }
++    }
++
++    /// Chromium/Electron build the a11y tree lazily; WM_GETOBJECT nudges it on.
++    fn wake_chromium_a11y(hwnd: isize) {
++        if hwnd == 0 || !win32_class_name(hwnd).starts_with("Chrome_") {
++            return;
++        }
++        let h = HWND(hwnd as *mut core::ffi::c_void);
++        // OBJID_CLIENT = -4, UiaRootObjectId = -25.
++        for objid in [-4isize, -25isize] {
++            unsafe {
++                let _ = SendMessageTimeoutW(
++                    h,
++                    WM_GETOBJECT,
++                    WPARAM(0),
++                    LPARAM(objid),
++                    SMTO_ABORTIFHUNG | SMTO_BLOCK,
++                    50,
++                    None,
++                );
++            }
++        }
++    }
++
++    fn gui_focus() -> Option<GUITHREADINFO> {
++        unsafe {
++            let mut gi = GUITHREADINFO {
++                cbSize: std::mem::size_of::<GUITHREADINFO>() as u32,
++                ..Default::default()
++            };
++            GetGUIThreadInfo(0, &mut gi).ok()?;
++            Some(gi)
++        }
++    }
++
++    /// Classic Win32 Edit / RichEdit fallback when UIA gives nothing.
++    fn read_win32_edit() -> Option<(String, isize, String)> {
++        let gi = gui_focus()?;
++        let h = if !gi.hwndFocus.0.is_null() { gi.hwndFocus } else { gi.hwndCaret };
++        if h.0.is_null() {
+             return None;
+         }
+-        // Document / RichEditD2DPT / contenteditable: TextPattern on THIS element only.
+-        if let Ok(pattern) = el.get_pattern::<UITextPattern>() {
+-            if let Ok(range) = pattern.get_document_range() {
+-                if let Ok(s) = range.get_text(-1) {
+-                    let s = normalize_field_text(&s);
+-                    // Notepad may hold longer notes; still cap to avoid page dumps.
+-                    let budget_ok = if is_richedit_editor(el) {
+-                        s.chars().count() <= 8_000 && s.lines().count() <= 400
+-                    } else {
+-                        within_field_budget(&s)
+-                    };
+-                    if !s.is_empty() && budget_ok {
+-                        return Some(s);
+-                    }
+-                }
++        let class = win32_class_name(h.0 as isize);
++        let lc = class.to_ascii_lowercase();
++        if !(lc == "edit" || lc.starts_with("richedit") || lc.contains("textbox")) {
++            return None;
++        }
++        const ES_READONLY: i32 = 0x0800;
++        if unsafe { GetWindowLongW(h, GWL_STYLE) } & ES_READONLY != 0 {
++            return None;
++        }
++        unsafe {
++            let mut len: usize = 0;
++            SendMessageTimeoutW(
++                h, WM_GETTEXTLENGTH, WPARAM(0), LPARAM(0),
++                SMTO_ABORTIFHUNG | SMTO_BLOCK, 80, Some(&mut len),
++            );
++            if len == 0 || len > MAX_FIELD_CHARS * 2 {
++                return None;
+             }
++            let mut buf = vec![0u16; len + 1];
++            let mut got: usize = 0;
++            SendMessageTimeoutW(
++                h, WM_GETTEXT, WPARAM(buf.len()), LPARAM(buf.as_mut_ptr() as isize),
++                SMTO_ABORTIFHUNG | SMTO_BLOCK, 80, Some(&mut got),
++            );
++            let s = normalize_field_text(&String::from_utf16_lossy(&buf[..got.min(len)]));
++            if s.trim().is_empty() || !within_field_budget(&s) {
++                return None;
++            }
++            Some((s, h.0 as isize, format!("Win32/{class}")))
+         }
+-        None
+     }
+ 
+     fn find_fill_among_children(
+@@ -385,7 +544,8 @@ mod win {
+             return None;
+         };
+         for _ in 0..16 {
+-            if is_fill_field(&child) {
++            // Only children that own keyboard focus — never a random sibling input.
++            if has_kb_focus(&child) && is_fill_field(&child) {
+                 if read_input_value(&child).is_some() || has_value_pattern(&child) {
+                     return Some(child);
+                 }
+@@ -414,7 +574,17 @@ mod win {
+             for _ in 0..6 {
+                 match walker.get_parent(&cur) {
+                     Ok(parent) => {
+-                        if is_fill_field(&parent) {
++                        // Stop at the top-level window: above it are other apps / desktop.
++                        if matches!(control_type_of(&parent), Some(ControlType::Window)) {
++                            break;
++                        }
++                        // Parent Documents are accepted only as real editors, never the
++                        // page root (Chrome root Document has a read-only Value = URL).
++                        if is_fill_field(&parent)
++                            && !(matches!(control_type_of(&parent), Some(ControlType::Document))
++                                && !is_richedit_editor(&parent)
++                                && !has_text_pattern(&parent))
++                        {
+                             return Some(parent);
+                         }
+                         cur = parent;
+@@ -562,7 +732,7 @@ mod win {
+         }
+ 
+         let field = element_field_rect(&el)?;
+-        if let Some(text) = read_input_value(&el) {
++        if let Some((text, _)) = read_input_value(&el) {
+             return Some(caret_from_text(field, &text));
+         }
+         // Field center-right — enough to look at the input without chasing glyphs.
+@@ -612,15 +782,26 @@ mod win {
+             })
+             .unwrap_or_else(|| "?".into());
+         let val = has_value_pattern(el);
+-        let text_pat = el.get_pattern::<UITextPattern>().is_ok();
++        let text_pat = has_text_pattern(el);
++        let tp2 = el
++            .get_pattern::<UITextPattern>()
++            .ok()
++            .map(|p| p.get_caret_range().is_ok())
++            .unwrap_or(false);
+         format!(
+-            "{} name=\"{}\" rect={} val={} textPat={} winClass={}",
++            "{} fw={} name=\"{}\" rect={} val={} ro={:?} textPat={} tp2={} kbFocus={} focusable={} winClass={} reject={}",
+             control_type_name(el),
++            el.get_framework_id().unwrap_or_default(),
+             short_name(el),
+             rect,
+             val,
++            value_readonly(el),
+             text_pat,
+-            win32_class_name(hwnd_from_element(el))
++            tp2,
++            has_kb_focus(el),
++            el.is_keyboard_focusable().unwrap_or(false),
++            win32_class_name(hwnd_from_element(el)),
++            fill_reject_reason(el).unwrap_or("-")
+         )
+     }
+ 
+@@ -631,18 +812,45 @@ mod win {
+         let Ok(focused) = automation.get_focused_element() else {
+             return "no focus".into();
+         };
++        let gi = gui_focus();
++        let w32 = gi
++            .map(|g| {
++                format!(
++                    "fg={} focusHwnd={} caretHwnd={}",
++                    win32_class_name(g.hwndActive.0 as isize),
++                    win32_class_name(g.hwndFocus.0 as isize),
++                    win32_class_name(g.hwndCaret.0 as isize)
++                )
++            })
++            .unwrap_or_else(|| "gui=none".into());
+         let fill = resolve_fill_field(&automation, &focused);
+         match fill {
+             Some(field) => format!(
+-                "focus={} | fill={}",
++                "{w32} | focus={} | fill={} readable={}",
+                 describe_el(&focused),
+-                describe_el(&field)
++                describe_el(&field),
++                read_input_value(&field).is_some()
+             ),
+-            None => format!("focus={} | fill=none", describe_el(&focused)),
++            None => format!("{w32} | focus={} | fill=none", describe_el(&focused)),
+         }
+     }
+ 
+     pub fn read_focused_field_detailed() -> Result<FieldSnapshot, &'static str> {
++        if let Some(g) = gui_focus() {
++            wake_chromium_a11y(g.hwndFocus.0 as isize);
++        }
++        let uia = read_focused_field_uia();
++        if uia.is_ok() || matches!(uia, Err("empty")) {
++            return uia;
++        }
++        // Classic Edit / RichEdit (old Notepad, WinForms, dialogs) via WM_GETTEXT.
++        if let Some((text, hwnd, ct)) = read_win32_edit() {
++            return Ok(FieldSnapshot { text, hwnd, control_type: ct, partial: false });
++        }
++        uia
++    }
++
++    fn read_focused_field_uia() -> Result<FieldSnapshot, &'static str> {
+         let automation = create_uia().map_err(|_| "uia init")?;
+         let focused = automation
+             .get_focused_element()
+@@ -650,21 +858,12 @@ mod win {
+         let Some(field) = resolve_fill_field(&automation, &focused) else {
+             return Err("not input");
+         };
+-        let Some(text) = read_input_value(&field) else {
++        let Some((text, partial)) = read_input_value(&field) else {
+             return Err("unreadable");
+         };
+         if text.trim().is_empty() {
+             return Err("empty");
+         }
+-        // read_input_value already capped RichEdit at 8k; don't re-reject with chat budget.
+-        let over_budget = if is_richedit_editor(&field) {
+-            text.chars().count() > 8_000 || text.lines().count() > 400
+-        } else {
+-            !within_field_budget(&text)
+-        };
+-        if over_budget {
+-            return Err("budget");
+-        }
+         let mut hwnd = hwnd_from_element_chain(&automation, &field);
+         if hwnd == 0 {
+             hwnd = hwnd_from_element_chain(&automation, &focused);
+@@ -676,6 +875,7 @@ mod win {
+             text,
+             hwnd,
+             control_type: control_type_name(&field),
++            partial,
+         })
+     }
+ 
+@@ -688,7 +888,7 @@ mod win {
+             .element_from_handle(uiautomation::types::Handle::from(hwnd))
+             .ok()?;
+         let field = resolve_fill_field(&automation, &el).unwrap_or(el);
+-        let text = read_input_value(&field)?;
++        let (text, _partial) = read_input_value(&field)?;
+         if text.trim().is_empty() {
+             None
+         } else {
+diff --git a/src-tauri/src/watcher.rs b/src-tauri/src/watcher.rs
+index 13a9be2..095de86 100644
+--- a/src-tauri/src/watcher.rs
++++ b/src-tauri/src/watcher.rs
+@@ -1153,7 +1153,12 @@ mod win {
+                 }
+ 
+                 // Spellcheck: read the real focused field (UIA).
+-                if typing_keys_active() || composing {
++                // Also keep watching right after typing even when no caret anchor was
++                // locked (Chromium/Electron/UWP often have no Win32 caret → composing=false).
++                if typing_keys_active()
++                    || composing
++                    || last_typed_at.elapsed() < Duration::from_millis(1200)
++                {
+                     field_watch_until = Instant::now() + Duration::from_millis(2500);
+                 }
+                 if digits.buf.is_empty()
+@@ -1186,8 +1191,8 @@ mod win {
+                             } else {
+                                 if type_changed || text_changed {
+                                     eprintln!(
+-                                        "[mote] field read type={} len={} hwnd={:#x}",
+-                                        snap.control_type, new_len, snap.hwnd
++                                        "[mote] field read type={} len={} hwnd={:#x} partial={}",
++                                        snap.control_type, new_len, snap.hwnd, snap.partial
+                                     );
+                                     last_field_type = snap.control_type.clone();
+                                 }
+@@ -1218,10 +1223,11 @@ mod win {
+                                                     .0 as isize
+                                             };
+                                             let top = fg_now.0 as isize;
+-                                            crate::digit_actions::set_digit_target_ex(
++                                            crate::digit_actions::set_spell_target(
+                                                 hwnd,
+                                                 top,
+                                                 &offer.replaced,
++                                                snap.partial,
+                                             );
+                                             let _ = app.emit("mote://spell-offer", offer);
+                                         }
+@@ -1258,16 +1264,19 @@ mod win {
+                         }
+                         Err(reason) => {
+                             // Throttle: same reason ≤1 / 2.5s; don't spam every 320ms poll.
+-                            if reason != last_field_miss_reason.as_str()
++                            // Diag on every miss (cheap vs. 320 ms poll); log when reason OR
++                            // focused element changed, else throttle to 1 / 2.5 s.
++                            let diag = crate::field_text::focus_diag_line();
++                            let key = format!("{reason}|{diag}");
++                            if key != last_field_miss_reason
+                                 || last_field_miss_log.elapsed() >= Duration::from_millis(2500)
+                             {
+-                                let diag = crate::field_text::focus_diag_line();
+                                 eprintln!("[mote] field read miss: {reason}");
+                                 if !diag.is_empty() {
+                                     eprintln!("[mote] field read diag: {diag}");
+                                 }
+                                 last_field_miss_log = Instant::now();
+-                                last_field_miss_reason = reason.to_string();
++                                last_field_miss_reason = key;
+                             }
+                         }
+                     }

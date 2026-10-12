@@ -1,0 +1,4 @@
+English Hunspell dictionary (en_US.aff + en_US.dic)
+
+Source: https://github.com/LibreOffice/dictionaries/tree/master/en
+License: see LibreOffice dictionaries (BSD / custom per file)

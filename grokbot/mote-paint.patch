@@ -1,0 +1,618 @@
+diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
+index b8d7cd0..2f3a71b 100644
+--- a/src-tauri/Cargo.toml
++++ b/src-tauri/Cargo.toml
+@@ -33,6 +33,7 @@ windows = { version = "0.61", features = [
+   "Win32_System_Com",
+   "Win32_System_Com_StructuredStorage",
+   "Win32_System_DataExchange",
++  "Win32_System_LibraryLoader",
+   "Win32_System_Memory",
+   "Win32_System_Ole",
+   "Win32_System_SystemInformation",
+diff --git a/b/src-tauri/src/canvas_typing.rs b/src-tauri/src/canvas_typing.rs
+new file mode 100644
+index 0000000..d3e2ed6
+--- /dev/null
++++ b/src-tauri/src/canvas_typing.rs
+@@ -0,0 +1,488 @@
++//! Spell-check for text typed on canvases without a UIA field (MS Paint, Paint.NET).
++//!
++//! Low-level keyboard hook → in-memory word buffer → spellcheck on a worker thread →
++//! the same `mote://spell-offer` plaque. Never auto-replaces; replace only on click.
++//! Nothing typed is logged except lengths.
++
++use tauri::AppHandle;
++
++/// Foreground processes where canvas typing is tracked (lower-case exe names).
++pub const CANVAS_ALLOWLIST: &[&str] = &["mspaint.exe", "paintdotnet.exe"];
++
++/// True while the foreground process is in the allowlist (watcher skips UIA there).
++pub fn is_active() -> bool {
++    #[cfg(windows)]
++    {
++        win::ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
++    }
++    #[cfg(not(windows))]
++    {
++        false
++    }
++}
++
++pub fn set_enabled(enabled: bool) {
++    #[cfg(windows)]
++    {
++        win::ENABLED.store(enabled, std::sync::atomic::Ordering::Relaxed);
++        if !enabled {
++            win::send(win::Ev::Reset("disabled"));
++        }
++    }
++    #[cfg(not(windows))]
++    {
++        let _ = enabled;
++    }
++}
++
++pub fn start(app: AppHandle) {
++    #[cfg(windows)]
++    {
++        win::start(app);
++    }
++    #[cfg(not(windows))]
++    {
++        let _ = app;
++    }
++}
++
++pub fn stop() {
++    #[cfg(windows)]
++    {
++        win::stop();
++    }
++}
++
++/// `Some(result)` if a canvas offer is pending and replace was handled here.
++pub fn try_replace() -> Option<Result<(), String>> {
++    #[cfg(windows)]
++    {
++        win::try_replace()
++    }
++    #[cfg(not(windows))]
++    {
++        None
++    }
++}
++
++#[cfg(windows)]
++mod win {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicU32, Ordering};
++    use std::sync::mpsc::{self, RecvTimeoutError, Sender};
++    use std::sync::{Mutex, OnceLock};
++    use std::thread;
++    use std::time::Duration;
++    use tauri::{Emitter, Manager};
++    use windows::core::PWSTR;
++    use windows::Win32::Foundation::{CloseHandle, HINSTANCE, HWND, LPARAM, LRESULT, POINT, WPARAM};
++    use windows::Win32::System::LibraryLoader::GetModuleHandleW;
++    use windows::Win32::System::Threading::{
++        GetCurrentProcessId, GetCurrentThreadId, OpenProcess, QueryFullProcessImageNameW,
++        PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
++    };
++    use windows::Win32::UI::Input::KeyboardAndMouse::{
++        GetAsyncKeyState, GetKeyboardLayout, SendInput, ToUnicodeEx, INPUT, INPUT_0,
++        INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VIRTUAL_KEY, VK_BACK,
++        VK_CAPITAL, VK_CONTROL, VK_LBUTTON, VK_LWIN, VK_MBUTTON, VK_MENU, VK_RBUTTON, VK_RWIN,
++        VK_SHIFT,
++    };
++    use windows::Win32::UI::WindowsAndMessaging::{
++        CallNextHookEx, DispatchMessageW, GetAncestor, GetCursorPos, GetForegroundWindow,
++        GetMessageW, GetWindowThreadProcessId, PostThreadMessageW, SetWindowsHookExW,
++        TranslateMessage, UnhookWindowsHookEx, WindowFromPoint, GA_ROOT, HHOOK, KBDLLHOOKSTRUCT,
++        LLKHF_INJECTED, MSG, WH_KEYBOARD_LL, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN,
++    };
++
++    pub static ENABLED: AtomicBool = AtomicBool::new(true);
++    pub static ACTIVE: AtomicBool = AtomicBool::new(false);
++    /// Foreground hwnd while ACTIVE (hook reads its keyboard layout).
++    static ACTIVE_HWND: AtomicIsize = AtomicIsize::new(0);
++    static HOOK_TID: AtomicU32 = AtomicU32::new(0);
++    static TX: OnceLock<Mutex<Sender<Ev>>> = OnceLock::new();
++    static PENDING: Mutex<Option<Pending>> = Mutex::new(None);
++
++    /// Offer is dropped once the user typed more than this after the separator.
++    const MAX_TAIL: usize = 40;
++    const MAX_WORD: usize = 48;
++    /// ToUnicodeEx flag: do not change keyboard state (Win10 1607+), keeps dead keys intact.
++    const TU_NO_STATE_CHANGE: u32 = 0x4;
++
++    pub enum Ev {
++        Char(char),
++        Back,
++        Reset(&'static str),
++    }
++
++    #[derive(Clone)]
++    struct Pending {
++        hwnd: isize,
++        word_len: usize,
++        sep: char,
++        /// Characters typed after `sep` (kept only to retype them after the fix).
++        tail: String,
++        correction: String,
++    }
++
++    pub fn send(ev: Ev) {
++        if let Some(m) = TX.get() {
++            if let Ok(tx) = m.lock() {
++                let _ = tx.send(ev);
++            }
++        }
++    }
++
++    fn vk_down(vk: VIRTUAL_KEY) -> bool {
++        unsafe { GetAsyncKeyState(i32::from(vk.0)) as u16 & 0x8000 != 0 }
++    }
++
++    unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
++        if code >= 0
++            && ENABLED.load(Ordering::Relaxed)
++            && ACTIVE.load(Ordering::Relaxed)
++            && (wparam.0 as u32 == WM_KEYDOWN || wparam.0 as u32 == WM_SYSKEYDOWN)
++            && lparam.0 != 0
++        {
++            let k = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
++            if (k.flags.0 & LLKHF_INJECTED.0) == 0 {
++                handle_key(k.vkCode, k.scanCode, wparam.0 as u32 == WM_SYSKEYDOWN);
++            }
++        }
++        CallNextHookEx(None, code, wparam, lparam)
++    }
++
++    /// Runs on the hook thread — must stay cheap (no spellcheck, no logging of text).
++    fn handle_key(vk: u32, scan: u32, sys: bool) {
++        match vk {
++            0x08 => return send(Ev::Back),
++            // Enter, Esc, Tab, PgUp/PgDn, End, Home, arrows, Delete.
++            0x0D | 0x1B | 0x09 | 0x21..=0x28 | 0x2E => return send(Ev::Reset("nav key")),
++            // Modifiers alone: ignore.
++            0x10 | 0x11 | 0x12 | 0x14 | 0xA0..=0xA5 | 0x5B | 0x5C => return,
++            _ => {}
++        }
++        let ctrl = vk_down(VK_CONTROL);
++        let alt = vk_down(VK_MENU) || sys;
++        // AltGr = Ctrl+Alt on RU/EN layouts isn't used for letters; treat as shortcut.
++        if ctrl || alt || vk_down(VK_LWIN) || vk_down(VK_RWIN) {
++            return send(Ev::Reset("shortcut"));
++        }
++        let mut state = [0u8; 256];
++        if vk_down(VK_SHIFT) {
++            state[VK_SHIFT.0 as usize] = 0x80;
++        }
++        if caps_on() {
++            state[VK_CAPITAL.0 as usize] = 0x01;
++        }
++        let hwnd = HWND(ACTIVE_HWND.load(Ordering::Relaxed) as *mut core::ffi::c_void);
++        let tid = unsafe { GetWindowThreadProcessId(hwnd, None) };
++        let hkl = unsafe { GetKeyboardLayout(tid) };
++        let mut buf = [0u16; 8];
++        let n = unsafe { ToUnicodeEx(vk, scan, &state, &mut buf, TU_NO_STATE_CHANGE, Some(hkl)) };
++        if n == 1 {
++            if let Some(Ok(c)) = char::decode_utf16([buf[0]]).next() {
++                if !c.is_control() {
++                    send(Ev::Char(c));
++                }
++            }
++        }
++        // n < 0 dead key, n == 0 no char, n > 1 composed: ignore (no state change).
++    }
++
++    fn caps_on() -> bool {
++        use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyState;
++        unsafe { GetKeyState(i32::from(VK_CAPITAL.0)) & 1 != 0 }
++    }
++
++    fn proc_name(pid: u32) -> String {
++        unsafe {
++            let Ok(h) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else {
++                return String::new();
++            };
++            let mut buf = [0u16; 512];
++            let mut len = buf.len() as u32;
++            let ok = QueryFullProcessImageNameW(h, PROCESS_NAME_WIN32, PWSTR(buf.as_mut_ptr()), &mut len)
++                .is_ok();
++            let _ = CloseHandle(h);
++            if !ok {
++                return String::new();
++            }
++            let full = String::from_utf16_lossy(&buf[..len as usize]);
++            full.rsplit(['\\', '/']).next().unwrap_or("").to_ascii_lowercase()
++        }
++    }
++
++    fn start_hook_thread() {
++        let _ = thread::Builder::new().name("mote-canvas-hook".into()).spawn(|| unsafe {
++            HOOK_TID.store(GetCurrentThreadId(), Ordering::SeqCst);
++            let hmod = GetModuleHandleW(None).ok().map(|m| HINSTANCE(m.0));
++            let hook: HHOOK = match SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), hmod, 0) {
++                Ok(h) => h,
++                Err(e) => {
++                    eprintln!("[mote] canvas: hook failed: {e}");
++                    return;
++                }
++            };
++            eprintln!("[mote] canvas: keyboard hook installed");
++            let mut msg = MSG::default();
++            while GetMessageW(&mut msg, None, 0, 0).as_bool() {
++                let _ = TranslateMessage(&msg);
++                DispatchMessageW(&msg);
++            }
++            let _ = UnhookWindowsHookEx(hook);
++            eprintln!("[mote] canvas: keyboard hook removed");
++        });
++    }
++
++    pub fn stop() {
++        let tid = HOOK_TID.swap(0, Ordering::SeqCst);
++        if tid != 0 {
++            unsafe {
++                let _ = PostThreadMessageW(tid, WM_QUIT, WPARAM(0), LPARAM(0));
++            }
++        }
++    }
++
++    fn mote_hwnd(app: &AppHandle) -> isize {
++        app.get_webview_window("main")
++            .and_then(|w| w.hwnd().ok())
++            .map(|h| h.0 as isize)
++            .unwrap_or(0)
++    }
++
++    fn clear_offer(app: &AppHandle, why: &str) {
++        let had = PENDING.lock().map(|mut g| g.take().is_some()).unwrap_or(false);
++        if had {
++            eprintln!("[mote] canvas: offer cleared ({why})");
++            let _ = app.emit("mote://spell-offer", crate::spellcheck::SpellOfferPayload::empty());
++        }
++    }
++
++    fn is_separator(c: char) -> bool {
++        c.is_whitespace() || (c.is_ascii_punctuation() && c != '-' && c != '\'') || "«»…—–".contains(c)
++    }
++
++    pub fn start(app: AppHandle) {
++        let (tx, rx) = mpsc::channel::<Ev>();
++        if TX.set(Mutex::new(tx)).is_err() {
++            return;
++        }
++        start_hook_thread();
++        let _ = thread::Builder::new().name("mote-canvas-worker".into()).spawn(move || {
++            let my_pid = unsafe { GetCurrentProcessId() };
++            let mut word = String::new();
++            let mut last_pid = 0u32;
++            let mut was_active = false;
++            let mut mouse_was_down = false;
++            loop {
++                let ev = match rx.recv_timeout(Duration::from_millis(60)) {
++                    Ok(ev) => Some(ev),
++                    Err(RecvTimeoutError::Timeout) => None,
++                    Err(RecvTimeoutError::Disconnected) => break,
++                };
++
++                // Foreground tracking.
++                let fg = unsafe { GetForegroundWindow() };
++                let mut pid = 0u32;
++                unsafe { GetWindowThreadProcessId(fg, Some(&mut pid)) };
++                if pid != 0 && pid != last_pid {
++                    if pid != my_pid {
++                        let name = proc_name(pid);
++                        let active = ENABLED.load(Ordering::Relaxed)
++                            && CANVAS_ALLOWLIST.contains(&name.as_str());
++                        if last_pid != 0 {
++                            word.clear();
++                            clear_offer(&app, "foreground changed");
++                        }
++                        if active {
++                            eprintln!("[mote] canvas: active proc={name}");
++                        } else if was_active {
++                            eprintln!("[mote] canvas: inactive (proc={name})");
++                        }
++                        ACTIVE.store(active, Ordering::Relaxed);
++                        was_active = active;
++                        last_pid = pid;
++                    } else {
++                        // Mote itself (plaque click): keep word/offer, stop capturing.
++                        ACTIVE.store(false, Ordering::Relaxed);
++                    }
++                } else if pid == last_pid && was_active {
++                    ACTIVE.store(ENABLED.load(Ordering::Relaxed), Ordering::Relaxed);
++                }
++                if ACTIVE.load(Ordering::Relaxed) {
++                    ACTIVE_HWND.store(fg.0 as isize, Ordering::Relaxed);
++                }
++
++                // Mouse click anywhere except on Mote → caret moved: reset.
++                if was_active {
++                    let down = vk_down(VK_LBUTTON) || vk_down(VK_RBUTTON) || vk_down(VK_MBUTTON);
++                    if down && !mouse_was_down {
++                        let mut pt = POINT::default();
++                        let on_mote = unsafe {
++                            GetCursorPos(&mut pt).is_ok()
++                                && GetAncestor(WindowFromPoint(pt), GA_ROOT).0 as isize
++                                    == mote_hwnd(&app)
++                        };
++                        if !on_mote {
++                            word.clear();
++                            clear_offer(&app, "mouse click");
++                        }
++                    }
++                    mouse_was_down = down;
++                }
++
++                let Some(ev) = ev else { continue };
++                match ev {
++                    Ev::Reset(why) => {
++                        word.clear();
++                        clear_offer(&app, why);
++                    }
++                    Ev::Back => {
++                        let mut drop_offer = false;
++                        if let Ok(mut g) = PENDING.lock() {
++                            if let Some(p) = g.as_mut() {
++                                if p.tail.pop().is_none() {
++                                    // Backspace into the separator / checked word.
++                                    drop_offer = true;
++                                }
++                            }
++                        }
++                        if drop_offer {
++                            clear_offer(&app, "backspace into word");
++                        }
++                        word.pop();
++                    }
++                    Ev::Char(c) => {
++                        let mut drop_offer = false;
++                        if let Ok(mut g) = PENDING.lock() {
++                            if let Some(p) = g.as_mut() {
++                                p.tail.push(c);
++                                drop_offer = p.tail.chars().count() > MAX_TAIL;
++                            }
++                        }
++                        if drop_offer {
++                            clear_offer(&app, "tail too long");
++                        }
++                        if !is_separator(c) {
++                            if word.chars().count() < MAX_WORD {
++                                word.push(c);
++                            }
++                            continue;
++                        }
++                        if word.is_empty() {
++                            continue;
++                        }
++                        let checked = std::mem::take(&mut word);
++                        check_word(&app, &checked, c);
++                    }
++                }
++            }
++        });
++    }
++
++    fn check_word(app: &AppHandle, w: &str, sep: char) {
++        let len = w.chars().count();
++        eprintln!("[mote] canvas: word len={len} checked");
++        // Same spellcheck as the UIA path; runs on this worker (own thread_local ISpellChecker).
++        match crate::spellcheck::spell_offer(app.clone(), w.to_string()) {
++            Ok(Some(offer)) => {
++                let correction = offer.replaced.trim().to_string();
++                if correction.is_empty() || correction == w {
++                    return;
++                }
++                let hwnd = ACTIVE_HWND.load(Ordering::Relaxed);
++                if let Ok(mut g) = PENDING.lock() {
++                    // Only the latest checked word is replaceable; older offer is superseded.
++                    *g = Some(Pending {
++                        hwnd,
++                        word_len: len,
++                        sep,
++                        tail: String::new(),
++                        correction,
++                    });
++                }
++                eprintln!("[mote] canvas: offer (word len={len})");
++                let _ = app.emit("mote://spell-offer", offer);
++            }
++            Ok(None) => {}
++            Err(e) => eprintln!("[mote] canvas: spellcheck error: {e}"),
++        }
++    }
++
++    fn input(vk: VIRTUAL_KEY, scan: u16, unicode: bool, up: bool) -> INPUT {
++        let mut flags = if unicode { KEYEVENTF_UNICODE } else { Default::default() };
++        if up {
++            flags |= KEYEVENTF_KEYUP;
++        }
++        INPUT {
++            r#type: INPUT_KEYBOARD,
++            Anonymous: INPUT_0 {
++                ki: KEYBDINPUT { wVk: vk, wScan: scan, dwFlags: flags, time: 0, dwExtraInfo: 0 },
++            },
++        }
++    }
++
++    fn send_inputs(v: &[INPUT]) -> bool {
++        let n = unsafe { SendInput(v, std::mem::size_of::<INPUT>() as i32) };
++        n as usize == v.len()
++    }
++
++    pub fn try_replace() -> Option<Result<(), String>> {
++        let p = PENDING.lock().ok()?.clone()?;
++        Some(replace(&p))
++    }
++
++    fn replace(p: &Pending) -> Result<(), String> {
++        let res = do_replace(p);
++        match &res {
++            Ok(()) => {
++                eprintln!("[mote] canvas: replace ok");
++                if let Ok(mut g) = PENDING.lock() {
++                    *g = None;
++                }
++            }
++            Err(e) => eprintln!("[mote] canvas: replace err: {e}"),
++        }
++        res
++    }
++
++    fn do_replace(p: &Pending) -> Result<(), String> {
++        if p.hwnd == 0 {
++            return Err("нет окна холста".into());
++        }
++        // Leave the corrected word on the clipboard too (copy path stays useful).
++        let _ = crate::digit_actions::set_clipboard(&p.correction);
++        if !crate::digit_actions::focus_window(p.hwnd) {
++            return Err("не удалось вернуть фокус в окно".into());
++        }
++        thread::sleep(Duration::from_millis(120));
++        let fg = unsafe { GetForegroundWindow() };
++        let root = |h: HWND| unsafe { GetAncestor(h, GA_ROOT).0 as isize };
++        let target = HWND(p.hwnd as *mut core::ffi::c_void);
++        if fg.0 as isize != p.hwnd && root(fg) != root(target) {
++            return Err("окно холста не на переднем плане — ввод отменён".into());
++        }
++        let backs = p.word_len + 1 + p.tail.chars().count();
++        let mut v = Vec::with_capacity(backs * 2);
++        for _ in 0..backs {
++            v.push(input(VK_BACK, 0, false, false));
++            v.push(input(VK_BACK, 0, false, true));
++        }
++        if !send_inputs(&v) {
++            return Err("SendInput (Backspace) заблокирован".into());
++        }
++        thread::sleep(Duration::from_millis(40));
++        let mut text = p.correction.clone();
++        text.push(p.sep);
++        text.push_str(&p.tail);
++        let mut v = Vec::new();
++        for u in text.encode_utf16() {
++            v.push(input(VIRTUAL_KEY(0), u, true, false));
++            v.push(input(VIRTUAL_KEY(0), u, true, true));
++        }
++        if !send_inputs(&v) {
++            return Err("SendInput (текст) заблокирован".into());
++        }
++        Ok(())
++    }
++}
+diff --git a/src-tauri/src/digit_actions.rs b/src-tauri/src/digit_actions.rs
+index a779921..36ead72 100644
+--- a/src-tauri/src/digit_actions.rs
++++ b/src-tauri/src/digit_actions.rs
+@@ -63,6 +63,24 @@ pub fn copy_words(words: &str) -> Result<(), String> {
+     }
+ }
+ 
++/// Win32 clipboard write (used by canvas_typing).
++pub fn set_clipboard(text: &str) -> Result<(), String> {
++    copy_words(text)
++}
++
++/// Bring `hwnd` to the foreground via the AttachThreadInput path used by replace.
++pub fn focus_window(hwnd: isize) -> bool {
++    #[cfg(windows)]
++    {
++        win::focus_hwnd(windows::Win32::Foundation::HWND(hwnd as *mut core::ffi::c_void))
++    }
++    #[cfg(not(windows))]
++    {
++        let _ = hwnd;
++        false
++    }
++}
++
+ /// Focus the field where digits were typed, delete them, paste words.
+ pub fn replace_with_words(words: &str) -> Result<(), String> {
+     #[cfg(windows)]
+@@ -78,6 +96,10 @@ pub fn replace_with_words(words: &str) -> Result<(), String> {
+ 
+ /// Spell fix: write full corrected field text (clipboard + select-all + paste).
+ pub fn replace_spell(replaced: &str, suggestion: &str) -> Result<(), String> {
++    // Canvas (Paint / Paint.NET) offer: retype via SendInput, not field write.
++    if let Some(res) = crate::canvas_typing::try_replace() {
++        return res;
++    }
+     #[cfg(windows)]
+     {
+         win::replace_spell(replaced, suggestion)
+@@ -198,7 +220,7 @@ mod win {
+         chord_ctrl(VIRTUAL_KEY(0x41)); // A
+     }
+ 
+-    fn focus_hwnd(target: HWND) -> bool {
++    pub(super) fn focus_hwnd(target: HWND) -> bool {
+         unsafe {
+             if !IsWindow(Some(target)).as_bool() {
+                 return false;
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 20db5f3..71b742e 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -1,4 +1,5 @@
+ mod browser_url;
++mod canvas_typing;
+ mod curious;
+ mod digit_actions;
+ mod field_text;
+@@ -155,6 +156,12 @@ fn spell_replace(replaced: String, suggestion: String) -> Result<(), String> {
+     digit_actions::replace_spell(&replaced, &suggestion)
+ }
+ 
++/// Toggle spell-check of text typed in MS Paint / Paint.NET.
++#[tauri::command]
++fn canvas_set_enabled(enabled: bool) {
++    canvas_typing::set_enabled(enabled);
++}
++
+ #[tauri::command]
+ fn weather_now(city: String) -> Result<String, String> {
+     weather::weather_now(city)
+@@ -255,6 +262,7 @@ pub fn run() {
+             spell_ready,
+             spell_offer,
+             spell_replace,
++            canvas_set_enabled,
+             weather_now,
+             curious_number_fact,
+             curious_date_fact,
+@@ -392,9 +400,15 @@ pub fn run() {
+             watcher::start(app.handle().clone());
+             media_session::start(app.handle().clone());
+             spellcheck::preload(app.handle().clone());
++            canvas_typing::start(app.handle().clone());
+ 
+             Ok(())
+         })
+-        .run(tauri::generate_context!())
+-        .expect("error while running Mote");
++        .build(tauri::generate_context!())
++        .expect("error while running Mote")
++        .run(|_app, event| {
++            if let tauri::RunEvent::Exit = event {
++                canvas_typing::stop();
++            }
++        });
+ }
+diff --git a/src-tauri/src/watcher.rs b/src-tauri/src/watcher.rs
+index 095de86..f03fd3d 100644
+--- a/src-tauri/src/watcher.rs
++++ b/src-tauri/src/watcher.rs
+@@ -1161,7 +1161,9 @@ mod win {
+                 {
+                     field_watch_until = Instant::now() + Duration::from_millis(2500);
+                 }
++                // Paint / Paint.NET: canvas_typing owns spell offers there.
+                 if digits.buf.is_empty()
++                    && !crate::canvas_typing::is_active()
+                     && Instant::now() < field_watch_until
+                     && last_field_poll.elapsed() >= Duration::from_millis(320)
+                 {
